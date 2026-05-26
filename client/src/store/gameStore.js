@@ -1,30 +1,60 @@
-import { create } from 'zustand'
+import { create } from "zustand";
 
 export const useGameStore = create((set) => ({
-  gameId: null,
-  gameState: 'waiting', // waiting, playing, finished
+  roomCode: null,
+  gameState: "waiting", // waiting, playing, finished
   players: [],
-  currentTurn: null,
+  currentPlayerIndex: 0,
+  currentColor: null,
+  currentValue: null,
   hand: [],
   discardPile: [],
-  drawPile: [],
+  deck: [],
+  winner: null,
 
-  setGameId: (gameId) => set({ gameId }),
+  setRoomCode: (roomCode) => set({ roomCode }),
   setGameState: (gameState) => set({ gameState }),
   setPlayers: (players) => set({ players }),
-  setCurrentTurn: (currentTurn) => set({ currentTurn }),
+  setCurrentPlayerIndex: (currentPlayerIndex) => set({ currentPlayerIndex }),
+  setCurrentColor: (currentColor) => set({ currentColor }),
+  setCurrentValue: (currentValue) => set({ currentValue }),
   setHand: (hand) => set({ hand }),
   setDiscardPile: (discardPile) => set({ discardPile }),
-  setDrawPile: (drawPile) => set({ drawPile }),
+  setDeck: (deck) => set({ deck }),
+  setWinner: (winner) => set({ winner }),
+
+  updateFromGameState: (gameState, playerUsername) =>
+    set((state) => {
+      // Find current player's hand
+      const currentPlayer = gameState.players.find(
+        (p) => p.username === playerUsername,
+      );
+      const hand = currentPlayer ? currentPlayer.hand : [];
+
+      return {
+        gameState: "playing",
+        players: gameState.players,
+        currentPlayerIndex: gameState.currentPlayerIndex,
+        currentColor: gameState.currentColor,
+        currentValue: gameState.currentValue,
+        hand,
+        discardPile: gameState.discardPile,
+        deck: gameState.deck,
+        winner: gameState.winner,
+      };
+    }),
 
   reset: () =>
     set({
-      gameId: null,
-      gameState: 'waiting',
+      roomCode: null,
+      gameState: "waiting",
       players: [],
-      currentTurn: null,
+      currentPlayerIndex: 0,
+      currentColor: null,
+      currentValue: null,
       hand: [],
       discardPile: [],
-      drawPile: [],
+      deck: [],
+      winner: null,
     }),
-}))
+}));

@@ -1,11 +1,13 @@
-import { logger } from "../utils/logger.js";
+import { logger } from "../../utils/logger.js";
 import {
   createRoom,
   getRoom,
   joinRoom,
   removePlayerFromRoom,
+  setGameState,
   startGame,
-} from "../rooms/roomManager.js";
+} from "../../rooms/roomManager.js";
+import { initializeGame } from "../../game/gameInitializer.js";
 
 export const setupLobbyHandlers = (socket, io) => {
   // Create Room
@@ -96,11 +98,21 @@ export const setupLobbyHandlers = (socket, io) => {
       // Start the game
       startGame(roomCode);
 
+      // Initialize game state
+      const gameState = initializeGame(room.players);
+      setGameState(roomCode, gameState);
+
       logger.info(`Game started in room ${roomCode}`);
 
       // Broadcast game started to all players
       io.to(roomCode).emit("gameStarted", {
         roomCode,
+      });
+
+      // Broadcast initial game state to all players
+      io.to(roomCode).emit("gameStateUpdated", {
+        roomCode,
+        gameState,
       });
 
       callback({

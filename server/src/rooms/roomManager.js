@@ -21,6 +21,7 @@ export const createRoom = (hostId, hostUsername) => {
       },
     ],
     status: "waiting", // waiting | started
+    gameState: null,
     createdAt: new Date(),
   };
   rooms.set(roomCode, room);
@@ -70,6 +71,14 @@ export const startGame = (roomCode) => {
   const room = rooms.get(roomCode);
   if (!room) return null;
   room.status = "started";
+  return room;
+};
+
+// Set game state
+export const setGameState = (roomCode, gameState) => {
+  const room = rooms.get(roomCode);
+  if (!room) return null;
+  room.gameState = gameState;
   return room;
 };
 
