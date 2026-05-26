@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useUserStore } from "../store/userStore";
 import { useGameStore } from "../store/gameStore";
 import { useLobbyStore } from "../store/lobbyStore";
 import Button from "../components/Button";
 import { off, on } from "../socket/socketService";
+import { emit as emitSocket } from "../socket/socketService";
 
 export default function GamePage() {
   const { roomCode } = useParams();
@@ -31,6 +32,8 @@ export default function GamePage() {
   const isCurrentPlayerTurn = currentPlayer &&
     currentPlayer.username === username;
 
+  const [selectedCardId, setSelectedCardId] = useState(null);
+
   // Setup socket listeners on component mount
   useEffect(() => {
     const handleGameStateUpdated = (data) => {
@@ -39,10 +42,18 @@ export default function GamePage() {
       }
     };
 
+    const handleError = (data) => {
+      if (data && data.roomCode === roomCode) {
+        alert(data.error || "Error");
+      }
+    };
+
     on("gameStateUpdated", handleGameStateUpdated);
+    on("error", handleError);
 
     return () => {
       off("gameStateUpdated", handleGameStateUpdated);
+      off("error", handleError);
     };
   }, [roomCode, username, updateFromGameState]);
 
@@ -63,12 +74,40 @@ export default function GamePage() {
   };
 
   const renderCard = (card) => {
+    const isSelected = selectedCardId === card.id;
+
+    const handleClick = () => {
+      setSelectedCardId((prev) => (prev === card.id ? null : card.id));
+    };
+
+    const handleDoubleClick = () => {
+      if (!isCurrentPlayerTurn) {
+        alert("Not your turn");
+        return;
+      }
+
+      // validate locally simple rule: same color or same number
+      const playable = card.color === currentColor ||
+        card.value === currentValue;
+      if (!playable) {
+        alert("Card not playable");
+        return;
+      }
+
+      emitSocket("playCard", { roomCode, cardId: card.id });
+      setSelectedCardId(null);
+    };
+
     return (
       <div
         key={card.id}
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
         className={`w-16 h-24 rounded-lg ${
           getColorClass(card.color)
-        } flex items-center justify-center text-white font-bold text-lg border-2 border-white cursor-pointer hover:scale-105 transition`}
+        } flex items-center justify-center text-white font-bold text-lg border-2 border-white cursor-pointer transform transition ${
+          isSelected ? "-translate-y-2 shadow-2xl" : ""
+        }`}
       >
         {card.value}
       </div>
