@@ -12,6 +12,7 @@ export default function HomePage() {
   const clearUsername = useUserStore((state) => state.clearUsername);
 
   const [connectionStatus, setConnectionStatus] = useState("Connecting...");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Initialize from storage and test socket connection
   useEffect(() => {
@@ -51,13 +52,30 @@ export default function HomePage() {
   };
 
   const handleHostGame = () => {
-    // TODO: Implement room creation logic
-    alert("Room creation coming soon!");
+    setIsLoading(true);
+    emit("createRoom", { username }, (response) => {
+      setIsLoading(false);
+      if (response.success) {
+        navigate(`/lobby/${response.room.roomCode}`, { replace: true });
+      } else {
+        alert("Failed to create room: " + response.error);
+      }
+    });
   };
 
   const handleJoinGame = () => {
-    // TODO: Implement join room logic
-    alert("Join room coming soon!");
+    const roomCode = prompt("Enter room code:");
+    if (!roomCode) return;
+
+    setIsLoading(true);
+    emit("joinRoom", { roomCode, username }, (response) => {
+      setIsLoading(false);
+      if (response.success) {
+        navigate(`/lobby/${roomCode}`, { replace: true });
+      } else {
+        alert("Failed to join room: " + response.error);
+      }
+    });
   };
 
   if (!isInitialized) {
@@ -113,11 +131,12 @@ export default function HomePage() {
             </p>
             <Button
               onClick={handleHostGame}
+              disabled={isLoading}
               variant="primary"
               size="lg"
               fullWidth
             >
-              Create Room
+              {isLoading ? "Creating..." : "Create Room"}
             </Button>
           </div>
 
@@ -136,11 +155,12 @@ export default function HomePage() {
             </p>
             <Button
               onClick={handleJoinGame}
+              disabled={isLoading}
               variant="secondary"
               size="lg"
               fullWidth
             >
-              Join Room
+              {isLoading ? "Joining..." : "Join Room"}
             </Button>
           </div>
         </div>

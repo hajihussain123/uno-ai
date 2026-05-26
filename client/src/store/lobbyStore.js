@@ -1,13 +1,11 @@
-import { create } from 'zustand'
+import { create } from "zustand";
 
 export const useLobbyStore = create((set) => ({
-  lobbies: [],
-  currentLobby: null,
+  currentRoom: null,
   players: [],
   isCreatingLobby: false,
 
-  setLobbies: (lobbies) => set({ lobbies }),
-  setCurrentLobby: (currentLobby) => set({ currentLobby }),
+  setCurrentRoom: (currentRoom) => set({ currentRoom }),
   setPlayers: (players) => set({ players }),
   setIsCreatingLobby: (isCreatingLobby) => set({ isCreatingLobby }),
 
@@ -23,9 +21,8 @@ export const useLobbyStore = create((set) => ({
 
   reset: () =>
     set({
-      lobbies: [],
-      currentLobby: null,
+      currentRoom: null,
       players: [],
       isCreatingLobby: false,
     }),
-}))
+}));

@@ -1,19 +1,56 @@
+import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useUserStore } from "../store/userStore";
 import { useLobbyStore } from "../store/lobbyStore";
 import Button from "../components/Button";
+import { emit, off, on } from "../socket/socketService";
 
 export default function LobbyPage() {
   const { roomCode } = useParams();
   const navigate = useNavigate();
   const username = useUserStore((state) => state.username);
   const players = useLobbyStore((state) => state.players);
+  const setPlayers = useLobbyStore((state) => state.setPlayers);
+  const reset = useLobbyStore((state) => state.reset);
+
+  const isHost = players.length > 0 && players[0].username === username;
+
+  // Setup socket listeners on component mount
+  useEffect(() => {
+    // Listen for lobby updates
+    const handleLobbyUpdated = (data) => {
+      if (data.room && data.room.players) {
+        setPlayers(data.room.players);
+      }
+    };
+
+    // Listen for game started
+    const handleGameStarted = (data) => {
+      if (data.roomCode === roomCode) {
+        reset();
+        navigate(`/game/${roomCode}`, { replace: true });
+      }
+    };
+
+    on("lobbyUpdated", handleLobbyUpdated);
+    on("gameStarted", handleGameStarted);
+
+    return () => {
+      off("lobbyUpdated", handleLobbyUpdated);
+      off("gameStarted", handleGameStarted);
+    };
+  }, [roomCode, navigate, setPlayers, reset]);
 
   const handleStartGame = () => {
-    navigate(`/game/${roomCode}`, { replace: true });
+    emit("startGame", { roomCode }, (response) => {
+      if (!response.success) {
+        alert("Failed to start game: " + response.error);
+      }
+    });
   };
 
   const handleBack = () => {
+    reset();
     navigate("/home", { replace: true });
   };
 
@@ -74,17 +111,11 @@ export default function LobbyPage() {
               Players ({players.length}/4)
             </h2>
             <div className="space-y-3">
-              {/* Current User */}
-              <div className="bg-slate-700 rounded-lg p-4 border-l-4 border-blue-500">
-                <p className="text-white font-semibold">{username} (You)</p>
-                <p className="text-xs text-gray-400 mt-1">Host</p>
-              </div>
-
-              {/* Other Players */}
+              {/* All Players */}
               {players.length === 0
                 ? (
                   <div className="text-gray-400 text-center py-8">
-                    <p className="text-sm">No other players yet</p>
+                    <p className="text-sm">No players yet</p>
                     <p className="text-xs mt-2">
                       Share the room code to invite friends
                     </p>
@@ -94,11 +125,18 @@ export default function LobbyPage() {
                   players.map((player) => (
                     <div
                       key={player.id}
-                      className="bg-slate-700 rounded-lg p-4"
+                      className={`rounded-lg p-4 ${
+                        player.isHost
+                          ? "bg-slate-700 border-l-4 border-blue-500"
+                          : "bg-slate-700"
+                      }`}
                     >
                       <p className="text-white font-semibold">
                         {player.username}
                       </p>
+                      {player.isHost && (
+                        <p className="text-xs text-gray-400 mt-1">Host</p>
+                      )}
                     </div>
                   ))
                 )}
@@ -107,17 +145,19 @@ export default function LobbyPage() {
         </div>
 
         {/* Start Game Button */}
-        <div className="mt-12">
-          <Button
-            onClick={handleStartGame}
-            disabled={players.length < 1}
-            variant="success"
-            size="lg"
-            fullWidth
-          >
-            {players.length === 0 ? "Waiting for players..." : "Start Game"}
-          </Button>
-        </div>
+        {isHost && (
+          <div className="mt-12">
+            <Button
+              onClick={handleStartGame}
+              disabled={players.length < 1}
+              variant="success"
+              size="lg"
+              fullWidth
+            >
+              {players.length === 0 ? "Waiting for players..." : "Start Game"}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
