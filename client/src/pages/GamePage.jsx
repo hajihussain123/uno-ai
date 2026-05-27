@@ -22,6 +22,7 @@ export default function GamePage() {
   const discardPile = useGameStore((state) => state.discardPile);
   const deck = useGameStore((state) => state.deck);
   const winner = useGameStore((state) => state.winner);
+  const gameStateStatus = useGameStore((state) => state.gameState);
 
   const updateFromGameState = useGameStore((state) =>
     state.updateFromGameState
@@ -33,7 +34,7 @@ export default function GamePage() {
   const currentPlayer = players[currentPlayerIndex];
   const isCurrentPlayerTurn = currentPlayer &&
     currentPlayer.username === username;
-  const isGameFinished = winner !== null;
+  const isGameFinished = winner !== null || gameStateStatus === "finished";
 
   // Check if player has playable cards
   const playableCards = hand.filter(
@@ -138,10 +139,8 @@ export default function GamePage() {
         className={`w-16 h-24 rounded-lg ${
           getColorClass(card.color)
         } flex items-center justify-center text-white font-bold text-lg border-2 border-white transform transition ${
-          isDisabled
-            ? "opacity-50 cursor-not-allowed"
-            : "cursor-pointer " +
-              (isSelected ? "-translate-y-2 shadow-2xl" : "")
+          isDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer " +
+            (isSelected ? "-translate-y-2 shadow-2xl" : "")
         }`}
       >
         {card.value}
@@ -168,7 +167,9 @@ export default function GamePage() {
         <div className="mb-8 text-center">
           <p className="text-gray-300 mb-2">Room: {roomCode}</p>
           <p className="text-2xl font-bold text-white">
-            {isCurrentPlayerTurn
+            {isGameFinished
+              ? <span className="text-pink-400">🏁 Game Over</span>
+              : isCurrentPlayerTurn
               ? <span className="text-green-400">🎮 Your Turn</span>
               : (
                 <span className="text-yellow-400">
@@ -176,9 +177,13 @@ export default function GamePage() {
                 </span>
               )}
           </p>
+          {isGameFinished && winner && (
+            <p className="text-sm text-gray-400 mt-2">
+              Winner: <span className="text-yellow-300">{winner}</span>
+            </p>
+          )}
         </div>
 
-        {/* Main Game Area */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Discard and Draw Pile */}
           <div className="lg:col-span-2">
@@ -190,22 +195,51 @@ export default function GamePage() {
                 <p className="text-gray-400 mb-4 uppercase text-sm tracking-wider">
                   Discard Pile
                 </p>
-                <div className="flex justify-center items-center gap-2">
-                  {discardPile.length > 0 && (
-                    <div className="relative">
-                      {discardPile.map((card, index) => (
-                        <div
-                          key={card.id}
-                          style={{
-                            transform: `rotate(${index * 2}deg)`,
-                            zIndex: index,
-                          }}
-                        >
-                          {renderCard(card)}
+                <div className="flex justify-center items-center gap-6">
+                  {discardPile.length > 0
+                    ? (
+                      <div className="relative inline-flex items-center">
+                        <div className="relative w-24 h-32">
+                          {discardPile.slice(-4, -1).map((card, index) => (
+                            <div
+                              key={`${card.id}-${index}`}
+                              style={{
+                                top: `${index * 6}px`,
+                                left: `${index * 6}px`,
+                                zIndex: index,
+                              }}
+                              className="absolute w-24 h-32 rounded-3xl bg-slate-800 border border-slate-700 shadow-inner"
+                            />
+                          ))}
+                          <div
+                            className={`absolute top-0 left-0 w-24 h-32 rounded-3xl border-4 border-white shadow-2xl flex items-center justify-center text-white text-3xl font-bold ${
+                              getColorClass(
+                                discardPile[discardPile.length - 1].color,
+                              )
+                            }`}
+                          >
+                            {discardPile[discardPile.length - 1].value}
+                          </div>
+                          <div className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-slate-950 border border-slate-700 flex items-center justify-center text-xs text-white">
+                            {discardPile.length}
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        <div className="text-left">
+                          <p className="text-sm text-gray-300 uppercase tracking-wider">
+                            Top card
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            Shows the current discard card; earlier cards are
+                            hidden.
+                          </p>
+                        </div>
+                      </div>
+                    )
+                    : (
+                      <div className="text-gray-400 text-sm">
+                        <p>No cards in discard pile yet</p>
+                      </div>
+                    )}
                   <div className="text-gray-400 text-sm">
                     <p className="font-semibold">
                       {currentColor && (

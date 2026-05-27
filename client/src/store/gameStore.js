@@ -25,14 +25,14 @@ export const useGameStore = create((set) => ({
 
   updateFromGameState: (gameState, playerUsername) =>
     set((state) => {
-      // Find current player's hand
+      const status = gameState.status || "playing";
       const currentPlayer = gameState.players.find(
         (p) => p.username === playerUsername,
       );
-      const hand = currentPlayer ? currentPlayer.hand : [];
+      const hand = currentPlayer?.hand || [];
 
       return {
-        gameState: "playing",
+        gameState: status,
         players: gameState.players,
         currentPlayerIndex: gameState.currentPlayerIndex,
         currentColor: gameState.currentColor,

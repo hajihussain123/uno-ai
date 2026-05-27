@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUserStore } from "../store/userStore";
+import { useLobbyStore } from "../store/lobbyStore";
 import Button from "../components/Button";
 import { emit, off, on } from "../socket/socketService";
 
@@ -51,11 +52,16 @@ export default function HomePage() {
     navigate("/", { replace: true });
   };
 
+  const setPlayers = useLobbyStore((state) => state.setPlayers);
+  const setCurrentRoom = useLobbyStore((state) => state.setCurrentRoom);
+
   const handleHostGame = () => {
     setIsLoading(true);
     emit("createRoom", { username }, (response) => {
       setIsLoading(false);
       if (response.success) {
+        setCurrentRoom(response.room);
+        setPlayers(response.room.players || []);
         navigate(`/lobby/${response.room.roomCode}`, { replace: true });
       } else {
         alert("Failed to create room: " + response.error);
@@ -71,6 +77,8 @@ export default function HomePage() {
     emit("joinRoom", { roomCode, username }, (response) => {
       setIsLoading(false);
       if (response.success) {
+        setCurrentRoom(response.room);
+        setPlayers(response.room.players || []);
         navigate(`/lobby/${roomCode}`, { replace: true });
       } else {
         alert("Failed to join room: " + response.error);
