@@ -4,6 +4,7 @@ import { useUserStore } from "../store/userStore";
 import { useGameStore } from "../store/gameStore";
 import { useLobbyStore } from "../store/lobbyStore";
 import Button from "../components/Button";
+import WinnerModal from "../components/WinnerModal";
 import { off, on } from "../socket/socketService";
 import { emit as emitSocket } from "../socket/socketService";
 
@@ -20,6 +21,7 @@ export default function GamePage() {
   const hand = useGameStore((state) => state.hand);
   const discardPile = useGameStore((state) => state.discardPile);
   const deck = useGameStore((state) => state.deck);
+  const winner = useGameStore((state) => state.winner);
 
   const updateFromGameState = useGameStore((state) =>
     state.updateFromGameState
@@ -31,8 +33,16 @@ export default function GamePage() {
   const currentPlayer = players[currentPlayerIndex];
   const isCurrentPlayerTurn = currentPlayer &&
     currentPlayer.username === username;
+  const isGameFinished = winner !== null;
+
+  // Check if player has playable cards
+  const playableCards = hand.filter(
+    (card) => card.color === currentColor || card.value === currentValue,
+  );
+  const hasPlayableCards = playableCards.length > 0;
 
   const [selectedCardId, setSelectedCardId] = useState(null);
+  const [isDrawing, setIsDrawing] = useState(false);
 
   // Setup socket listeners on component mount
   useEffect(() => {
@@ -63,6 +73,26 @@ export default function GamePage() {
     navigate("/home", { replace: true });
   };
 
+  const handleDrawCard = () => {
+    if (!isCurrentPlayerTurn) {
+      alert("Not your turn");
+      return;
+    }
+
+    if (hasPlayableCards) {
+      alert("You have playable cards. Play a card first.");
+      return;
+    }
+
+    setIsDrawing(true);
+    emitSocket("drawCard", { roomCode }, (response) => {
+      setIsDrawing(false);
+      if (!response?.success) {
+        alert(response?.error || "Failed to draw card");
+      }
+    });
+  };
+
   const getColorClass = (color) => {
     const colorMap = {
       red: "bg-red-500",
@@ -75,14 +105,16 @@ export default function GamePage() {
 
   const renderCard = (card) => {
     const isSelected = selectedCardId === card.id;
+    const isDisabled = !isCurrentPlayerTurn || isGameFinished;
 
     const handleClick = () => {
+      if (isDisabled) return;
       setSelectedCardId((prev) => (prev === card.id ? null : card.id));
     };
 
     const handleDoubleClick = () => {
-      if (!isCurrentPlayerTurn) {
-        alert("Not your turn");
+      if (isDisabled) {
+        alert("Not your turn or game is finished");
         return;
       }
 
@@ -105,8 +137,11 @@ export default function GamePage() {
         onDoubleClick={handleDoubleClick}
         className={`w-16 h-24 rounded-lg ${
           getColorClass(card.color)
-        } flex items-center justify-center text-white font-bold text-lg border-2 border-white cursor-pointer transform transition ${
-          isSelected ? "-translate-y-2 shadow-2xl" : ""
+        } flex items-center justify-center text-white font-bold text-lg border-2 border-white transform transition ${
+          isDisabled
+            ? "opacity-50 cursor-not-allowed"
+            : "cursor-pointer " +
+              (isSelected ? "-translate-y-2 shadow-2xl" : "")
         }`}
       >
         {card.value}
@@ -192,10 +227,30 @@ export default function GamePage() {
                 <p className="text-gray-400 mb-4 uppercase text-sm tracking-wider">
                   Draw Pile
                 </p>
-                <div className="flex justify-center">
+                <div className="flex justify-center gap-4 items-center flex-col">
                   <div className="w-16 h-24 rounded-lg bg-slate-700 flex items-center justify-center text-gray-400 border-2 border-dashed border-slate-600 cursor-pointer hover:border-slate-500">
                     <span className="text-2xl font-bold">{deck.length}</span>
                   </div>
+
+                  {/* Draw Card Button */}
+                  {isCurrentPlayerTurn && !isGameFinished &&
+                    !hasPlayableCards && (
+                    <Button
+                      onClick={handleDrawCard}
+                      variant="success"
+                      size="sm"
+                      disabled={isDrawing}
+                    >
+                      {isDrawing ? "Drawing..." : "Draw Card"}
+                    </Button>
+                  )}
+
+                  {isCurrentPlayerTurn && !isGameFinished && hasPlayableCards &&
+                    (
+                      <p className="text-yellow-400 text-sm font-semibold">
+                        Play a card first
+                      </p>
+                    )}
                 </div>
               </div>
             </div>
@@ -265,6 +320,15 @@ export default function GamePage() {
             )}
         </div>
       </div>
+
+      {/* Winner Modal */}
+      {isGameFinished && winner && (
+        <WinnerModal
+          winner={winner}
+          roomCode={roomCode}
+          onExitGame={handleBackToHome}
+        />
+      )}
     </div>
   );
 }

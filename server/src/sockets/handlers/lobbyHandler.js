@@ -10,39 +10,35 @@ import {
 import { initializeGame } from "../../game/gameInitializer.js";
 
 export const setupLobbyHandlers = (socket, io) => {
-  // Create Room
   socket.on("createRoom", (data, callback) => {
     try {
       const { username } = data;
       const room = createRoom(socket.id, username);
 
-      // Join the socket to a room namespace
       socket.join(room.roomCode);
 
       logger.info(`Room created: ${room.roomCode} by ${username}`);
 
-      // Return room to client
-      callback({
+      callback?.({
         success: true,
         room,
       });
     } catch (error) {
       logger.error("Error creating room:", error);
-      callback({
+      callback?.({
         success: false,
         error: error.message,
       });
     }
   });
 
-  // Join Room
   socket.on("joinRoom", (data, callback) => {
     try {
       const { roomCode, username } = data;
       const room = getRoom(roomCode);
 
       if (!room) {
-        callback({
+        callback?.({
           success: false,
           error: "Room not found",
         });
@@ -50,66 +46,59 @@ export const setupLobbyHandlers = (socket, io) => {
       }
 
       if (room.status === "started") {
-        callback({
+        callback?.({
           success: false,
           error: "Game already started",
         });
         return;
       }
 
-      // Join room
       joinRoom(roomCode, socket.id, username);
       socket.join(roomCode);
 
       logger.info(`Player ${username} joined room ${roomCode}`);
 
-      // Broadcast updated lobby to all players in room
       io.to(roomCode).emit("lobbyUpdated", {
         room: getRoom(roomCode),
       });
 
-      callback({
+      callback?.({
         success: true,
         room: getRoom(roomCode),
       });
     } catch (error) {
       logger.error("Error joining room:", error);
-      callback({
+      callback?.({
         success: false,
         error: error.message,
       });
     }
   });
 
-  // Start Game
   socket.on("startGame", (data, callback) => {
     try {
       const { roomCode } = data;
       const room = getRoom(roomCode);
 
       if (!room) {
-        callback({
+        callback?.({
           success: false,
           error: "Room not found",
         });
         return;
       }
 
-      // Start the game
       startGame(roomCode);
 
-      // Initialize game state
       const gameState = initializeGame(room.players);
       setGameState(roomCode, gameState);
 
       logger.info(`Game started in room ${roomCode}`);
 
-      // Broadcast game started to all players
       io.to(roomCode).emit("gameStarted", {
         roomCode,
       });
 
-      // Broadcast initial game state to each player (sanitize hands for opponents)
       const buildForRecipient = (recipientId) => {
         const sanitizedPlayers = gameState.players.map((p) => {
           if (p.id === recipientId) {
@@ -132,12 +121,12 @@ export const setupLobbyHandlers = (socket, io) => {
         });
       });
 
-      callback({
+      callback?.({
         success: true,
       });
     } catch (error) {
       logger.error("Error starting game:", error);
-      callback({
+      callback?.({
         success: false,
         error: error.message,
       });
