@@ -1,5 +1,6 @@
 import { handlePing } from "./handlers/pingHandler.js";
 import { setupLobbyHandlers } from "./handlers/lobbyHandler.js";
+import { setupGameHandlers } from "./handlers/gameHandler.js";
 import { getRoom, removePlayerFromRoom } from "../rooms/roomManager.js";
 import { logger } from "../utils/logger.js";
 
@@ -9,6 +10,9 @@ export const setupSocketHandlers = (socket, io) => {
 
   // Lobby handlers
   setupLobbyHandlers(socket, io);
+
+  // Game handlers
+  setupGameHandlers(socket, io);
 
   // Handle disconnect - clean up rooms
   socket.on("disconnect", () => {
