@@ -1,0 +1,11 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Hello') {
+            steps {
+                echo 'Pipeline executed from GitHub! nen erripuknii'
+            }
+        }
+    }
+}
