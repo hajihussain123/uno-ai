@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     stages {
-        stage('Hello') {
+        stage('push') {
             steps {
-                echo 'Pipeline executed from GitHub! nen erripuknii'
+                echo 'Pipeline executed from GitHub !!'
             }
         }
     }
