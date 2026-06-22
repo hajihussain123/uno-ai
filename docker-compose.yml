@@ -36,7 +36,4 @@ services:
 
 networks:
   uno-network:
-    driver: bridge
-
-
-    
+    driver: bridge    
