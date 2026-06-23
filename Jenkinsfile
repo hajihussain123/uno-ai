@@ -2,18 +2,40 @@ pipeline {
     agent any
 
     stages {
-        stage('push') {
+        stage('Get Commit Message') {
             steps {
-                echo 'Pipeline executed from GitHub !!'
+                script {
+                    env.COMMIT_MSG = sh(
+                        script: 'git log -1 --pretty=%B',
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Commit Message: ${env.COMMIT_MSG}"
+                }
             }
         }
-        stage('Get Commit') {
+
+        stage('AI Summary') {
             steps {
-                sh 'git log -1 --pretty=%B > commit.txt'
-                sh 'cat commit.txt'
+                withCredentials([
+                    string(credentialsId: 'openai-key', variable: 'OPENAI_KEY')
+                ]) {
+                    sh """
+                    curl https://api.openai.com/v1/chat/completions \
+                      -H "Authorization: Bearer \$OPENAI_KEY" \
+                      -H "Content-Type: application/json" \
+                      -d '{
+                        "model":"gpt-4.1-mini",
+                        "messages":[
+                          {
+                            "role":"user",
+                            "content":"Summarize this commit in one sentence: ${env.COMMIT_MSG}"
+                          }
+                        ]
+                      }'
+                    """
+                }
             }
         }
     }
 }
-
-
