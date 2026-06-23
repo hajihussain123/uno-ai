@@ -14,38 +14,38 @@ pipeline {
                 }
             }
         }
-        stage('List Models') {
+        // stage('List Models') {
+        //     steps {
+        //         withCredentials([string(credentialsId: 'openai-key', variable: 'OPENAI_KEY')]) {
+        //             sh '''
+        //     curl https://api.openai.com/v1/models \
+        //       -H "Authorization: Bearer $OPENAI_KEY"
+        //     '''
+        //         }
+        //     }
+        // }
+
+        stage('AI Summary') {
             steps {
-                withCredentials([string(credentialsId: 'openai-key', variable: 'OPENAI_KEY')]) {
-                    sh '''
-            curl https://api.openai.com/v1/models \
-              -H "Authorization: Bearer $OPENAI_KEY"
-            '''
-                }
+                withCredentials([
+                string(credentialsId: 'openai-key', variable: 'OPENAI_KEY')
+            ]) {
+                    sh """
+                curl https://api.openai.com/v1/chat/completions \
+                  -H "Authorization: Bearer \$OPENAI_KEY" \
+                  -H "Content-Type: application/json" \
+                  -d '{
+                    "model":"gpt-3.5-turbo",
+                    "messages":[
+                      {
+                        "role":"user",
+                        "content":"Summarize this commit in one sentence: ${env.COMMIT_MSG}"
+                      }
+                    ]
+                  }'
+                """
+            }
             }
         }
-
-    // stage('AI Summary') {
-    //     steps {
-    //         withCredentials([
-    //             string(credentialsId: 'openai-key', variable: 'OPENAI_KEY')
-    //         ]) {
-    //             sh """
-    //             curl https://api.openai.com/v1/chat/completions \
-    //               -H "Authorization: Bearer \$OPENAI_KEY" \
-    //               -H "Content-Type: application/json" \
-    //               -d '{
-    //                 "model":"gpt-4o-mini",
-    //                 "messages":[
-    //                   {
-    //                     "role":"user",
-    //                     "content":"Summarize this commit in one sentence: ${env.COMMIT_MSG}"
-    //                   }
-    //                 ]
-    //               }'
-    //             """
-    //         }
-    //     }
-    // }
     }
 }
