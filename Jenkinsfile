@@ -14,41 +14,41 @@ pipeline {
                 }
             }
         }
-        // stage('List Models') {
-        //     steps {
-        //         withCredentials([string(credentialsId: 'openai-key', variable: 'OPENAI_KEY')]) {
-        //             sh '''
-        //     curl https://api.openai.com/v1/models \
-        //       -H "Authorization: Bearer $OPENAI_KEY"
-        //     '''
-        //         }
-        //     }
-        // }
 
-        stage('Gemini Summary') {
+        stage('List Gemini Models') {
             steps {
-                script {
-                    def commitMsg = sh(
-                script: 'git log -1 --pretty=%B',
-                returnStdout: true
-            ).trim()
-
-                    withCredentials([string(credentialsId: 'gemini-key', variable: 'GEMINI_KEY')]) {
-                        sh """
-                curl -X POST \
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\$GEMINI_KEY" \
-                -H "Content-Type: application/json" \
-                -d '{
-                    "contents": [{
-                        "parts": [{
-                            "text": "Summarize this commit in one sentence: ${commitMsg}"
-                        }]
-                    }]
-                }'
-                """
-                    }
+                withCredentials([string(credentialsId: 'gemini-key', variable: 'GEMINI_KEY')]) {
+                    sh '''
+            curl "https://generativelanguage.googleapis.com/v1beta/models?key=$GEMINI_KEY"
+            '''
                 }
             }
         }
+
+        // stage('Gemini Summary') {
+        //     steps {
+        //         script {
+        //             def commitMsg = sh(
+        //         script: 'git log -1 --pretty=%B',
+        //         returnStdout: true
+        //     ).trim()
+
+    //             withCredentials([string(credentialsId: 'gemini-key', variable: 'GEMINI_KEY')]) {
+    //                 sh """
+    //         curl -X POST \
+    //         "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\$GEMINI_KEY" \
+    //         -H "Content-Type: application/json" \
+    //         -d '{
+    //             "contents": [{
+    //                 "parts": [{
+    //                     "text": "Summarize this commit in one sentence: ${commitMsg}"
+    //                 }]
+    //             }]
+    //         }'
+    //         """
+    //             }
+    //         }
+    //     }
+    // }
     }
 }
