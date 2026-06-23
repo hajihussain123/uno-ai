@@ -10,22 +10,12 @@ pipeline {
                         returnStdout: true
                     ).trim()
 
-                    echo "Commit Message: ${env.COMMIT_MSG}"
+                    echo "Commit Message: ${env .COMMIT_MSG}"
                 }
             }
         }
 
-        // stage('List Gemini Models') {
-        //     steps {
-        //         withCredentials([string(credentialsId: 'gemini-key', variable: 'GEMINI_KEY')]) {
-        //             sh '''
-        //     curl "https://generativelanguage.googleapis.com/v1beta/models?key=$GEMINI_KEY"
-        //     '''
-        //         }
-        //     }
-        // }
-
-        stage('Gemini Summary') {
+        stage('AI Summary') {
             steps {
                 script {
                     def commitMsg = sh(
@@ -33,22 +23,16 @@ pipeline {
                 returnStdout: true
             ).trim()
 
-                withCredentials([string(credentialsId: 'gemini-key', variable: 'GEMINI_KEY')]) {
                     sh """
-            curl -X POST \
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=\$GEMINI_KEY" \
-            -H "Content-Type: application/json" \
-            -d '{
-                "contents": [{
-                    "parts": [{
-                        "text": "Summarize this commit in one sentence: ${commitMsg}"
-                    }]
-                }]
-            }'
+            curl http://host.docker.internal:11434/api/generate \
+              -d '{
+                "model":"llama3.2",
+                "prompt":"Summarize this commit: ${commitMsg}",
+                "stream": false
+              }'
             """
                 }
             }
         }
-    }
     }
 }
