@@ -25,26 +25,29 @@ pipeline {
         //     }
         // }
 
-        stage('AI Summary') {
+        stage('Gemini Summary') {
             steps {
-                withCredentials([
-                string(credentialsId: 'openai-key', variable: 'OPENAI_KEY')
-            ]) {
-                    sh """
-                curl https://api.openai.com/v1/chat/completions \
-                  -H "Authorization: Bearer \$OPENAI_KEY" \
-                  -H "Content-Type: application/json" \
-                  -d '{
-                    "model":"gpt-3.5-turbo",
-                    "messages":[
-                      {
-                        "role":"user",
-                        "content":"Summarize this commit in one sentence: ${env.COMMIT_MSG}"
-                      }
-                    ]
-                  }'
+                script {
+                    def commitMsg = sh(
+                script: 'git log -1 --pretty=%B',
+                returnStdout: true
+            ).trim()
+
+                    withCredentials([string(credentialsId: 'gemini-key', variable: 'GEMINI_KEY')]) {
+                        sh """
+                curl -X POST \
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=\$GEMINI_KEY" \
+                -H "Content-Type: application/json" \
+                -d '{
+                    "contents": [{
+                        "parts": [{
+                            "text": "Summarize this commit in one sentence: ${commitMsg}"
+                        }]
+                    }]
+                }'
                 """
-            }
+                    }
+                }
             }
         }
     }
