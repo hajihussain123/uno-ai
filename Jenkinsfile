@@ -36,7 +36,7 @@ pipeline {
                     withCredentials([string(credentialsId: 'gemini-key', variable: 'GEMINI_KEY')]) {
                         sh """
                 curl -X POST \
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=\$GEMINI_KEY" \
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\$GEMINI_KEY" \
                 -H "Content-Type: application/json" \
                 -d '{
                     "contents": [{
