@@ -2,36 +2,30 @@ pipeline {
     agent any
 
     stages {
-        stage('Get Commit Message') {
+        stage('Get Changes') {
             steps {
                 script {
-                    env.COMMIT_MSG = sh(
-                        script: 'git log -1 --pretty=%B',
+                    env.GIT_DIFF = sh(
+                        script: 'git diff HEAD~1 HEAD',
                         returnStdout: true
                     ).trim()
 
-                    echo "Commit Message: ${env .COMMIT_MSG}"
+                    echo 'Collected git diff'
                 }
             }
         }
 
-        stage('AI Summary') {
+        stage('AI Code Review') {
             steps {
-                script {
-                    def commitMsg = sh(
-                script: 'git log -1 --pretty=%B',
-                returnStdout: true
-            ).trim()
-
-                    sh """
-            curl http://host.docker.internal:11434/api/generate \
-              -d '{
-                "model":"llama3.2",
-                "prompt":"Summarize this commit: ${commitMsg}",
-                "stream": false
-              }'
-            """
-                }
+                sh """
+                curl http://host.docker.internal:11434/api/generate \
+                  -H "Content-Type: application/json" \
+                  -d '{
+                    "model":"llama3.2",
+                    "prompt":"You are a senior software engineer performing a code review. Review the following git diff. Identify bugs, code smells, security issues, performance concerns, and suggest improvements.\\n\\n${env.GIT_DIFF}",
+                    "stream": false
+                  }'
+                """
             }
         }
     }
